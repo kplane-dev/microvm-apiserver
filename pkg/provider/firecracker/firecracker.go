@@ -112,9 +112,15 @@ func (p *Provider) Exec(ctx context.Context, vmID string, cmd []string) (*provid
 		Stderr   string `json:"stderr"`
 		ExitCode int    `json:"exit_code"`
 	}
+	// The agent's /exec wraps in /bin/sh -c, so send the raw command.
+	// If caller passes ["/bin/sh", "-c", "node -v"], extract the actual command.
+	cmdStr := strings.Join(cmd, " ")
+	if len(cmd) >= 3 && (cmd[0] == "/bin/sh" || cmd[0] == "sh") && cmd[1] == "-c" {
+		cmdStr = strings.Join(cmd[2:], " ")
+	}
 	params := url.Values{
 		"vm_id": {vmID},
-		"cmd":   {strings.Join(cmd, " ")},
+		"cmd":   {cmdStr},
 	}
 	if err := p.agentGet(ctx, agent, "/exec", params, &resp); err != nil {
 		return nil, fmt.Errorf("exec %s: %w", vmID, err)

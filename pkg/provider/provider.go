@@ -5,9 +5,9 @@ import "context"
 
 // ExecResult holds the output of a command executed inside a VM.
 type ExecResult struct {
-	Stdout   string
-	Stderr   string
-	ExitCode int
+	Stdout   string `json:"stdout"`
+	Stderr   string `json:"stderr"`
+	ExitCode int    `json:"exit_code"`
 }
 
 // VMStatus holds the current state of a VM from the agent's perspective.
