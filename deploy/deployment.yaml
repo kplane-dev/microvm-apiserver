@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kplane-sandbox-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: microvm-apiserver
+  namespace: kplane-sandbox-system
+  labels:
+    app: microvm-apiserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: microvm-apiserver
+  template:
+    metadata:
+      labels:
+        app: microvm-apiserver
+    spec:
+      containers:
+      - name: apiserver
+        image: ghcr.io/kplane-dev/microvm-apiserver:latest
+        args:
+        - --listen=:8443
+        - --agents=http://firecracker-agent.kplane-sandbox-system.svc:8090
+        ports:
+        - containerPort: 8443
+          name: https
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8443
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8443
+            scheme: HTTP
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: microvm-apiserver
+  namespace: kplane-sandbox-system
+spec:
+  selector:
+    app: microvm-apiserver
+  ports:
+  - port: 443
+    targetPort: 8443
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: firecracker-agent
+  namespace: kplane-sandbox-system
+spec:
+  # Headless service for agent discovery — resolves to all agent pod IPs
+  clusterIP: None
+  selector:
+    app: firecracker-agent
+  ports:
+  - port: 8090
+    targetPort: 8090
+    protocol: TCP
