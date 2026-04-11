@@ -19,19 +19,20 @@ func main() {
 	)
 
 	flag.StringVar(&listenAddr, "listen", ":8443", "Listen address")
-	flag.StringVar(&agentURLs, "agents", "", "Comma-separated firecracker-agent URLs (e.g., http://10.0.1.1:8090,http://10.0.1.2:8090)")
+	flag.StringVar(&agentURLs, "agents", "", "Comma-separated firecracker-agent URLs")
 	flag.Parse()
 
-	agents := strings.Split(agentURLs, ",")
-	if agentURLs == "" {
-		agents = nil
+	var agents []string
+	if agentURLs != "" {
+		agents = strings.Split(agentURLs, ",")
 	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
+	server := app.NewServer(listenAddr, agents)
 	log.Printf("microvm-apiserver starting (agents=%v)", agents)
-	if err := app.Run(ctx, agents, listenAddr); err != nil {
+	if err := server.Run(ctx); err != nil {
 		log.Fatalf("server failed: %v", err)
 		os.Exit(1)
 	}
